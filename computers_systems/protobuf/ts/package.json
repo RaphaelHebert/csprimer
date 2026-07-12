@@ -3,13 +3,25 @@
   "version": "1.0.0",
   "description": "implement a homemade protobuf",
   "main": "index.ts",
+  "type": "commonjs",
   "scripts": {
-    "test": "test"
+    "test": "jest",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx index.ts"
   },
   "keywords": [
     "csprimer",
     "protobuf"
   ],
   "author": "raphael hebert",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^26.1.1",
+    "jest": "^30.4.2",
+    "ts-jest": "^29.4.11",
+    "tsx": "^4.23.0",
+    "typescript": "^6.0.0"
+  }
 }

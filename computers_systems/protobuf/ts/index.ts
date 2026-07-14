@@ -2,7 +2,7 @@
 
 function unsignedBaseTenToBinary(n: number) {
   let res = "0";
-  // check if n is >= 0 and safe for JS number (https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/MAX_SAFE_INTEGER)
+  // check if n is >= 0 and safe for JS number (float64) (https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/MAX_SAFE_INTEGER)
   if (n < 0 || n > Number.MAX_SAFE_INTEGER) {
     throw new Error("n must be >= 0 and <= 18446744073709551615");
   }

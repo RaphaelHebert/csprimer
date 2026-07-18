@@ -10,14 +10,11 @@ def main():
     # open the file, extract and read their content
     file_path = f"{os.getcwd()}/color-convert/advanced.css"
     css = file_reader(file_path)
-    print(css)
     # extract the css values
     hex_values = extract_hex(css)
-    print(hex_values)
     # convert
     conversion = convert_hex_to_dec(hex_values)
-    print(conversion)
-
+    file_updater(file_path, conversion)
 
 
 
@@ -34,7 +31,7 @@ def extract_hex(s: str):
         rgb = []
         rgb_hex = v.split('color: #')[1][:-1]
         for i, _ in enumerate(rgb_hex):
-            if len(rgb_hex) % 2 != 0:
+            if len(rgb_hex) < 6:
                 rgb.append(rgb_hex[i])
             elif i % 2 == 1:
                 rgb.append(rgb_hex[i-1:i+1])
@@ -46,9 +43,44 @@ def convert_hex_to_dec(h: list[str]):
     res = {}
     for hex in h:
         dec = []
+        hex_str =''.join(hex)
         for i in hex:
-            dec.append(int(i, base=16))
-        res[''.join(hex)] = dec
+            print('hex', hex)
+            if len(hex_str) < 6:
+                print(i)
+                i = bytes(i, "utf-8")
+                print(i)
+                dec.append((int(i, base=16) << 4) + int(i, base=16))
+            else:   
+                dec.append(int(i, base=16))
+        if len(dec) % 4 == 0:
+            dec[3] = f'/ {dec[3] / 255}'[:9]
+        res[hex_str] = dec 
     return res
+
+
+def file_updater(path: str, d: dict):
+    # read file
+    data = file_reader(path)
+
+    # replace hex value to dec
+    for k, v in d.items():
+        print(d)
+        v = [str(w) for w in v]
+        if len(v) % 3 == 0:
+            data = data.replace(f'#{k}', f'rgb({' '.join(v)})')
+        elif len(v) % 4 == 0:
+             print('data :  ', f'#{k}', f'rgba({' '.join(v)})')
+             data = data.replace(f'#{k}', f'rgba({' '.join(v)})')
+
+    # write a new file
+    f_name = f'{path.strip('.css')}_decimal.css'
+    with open(f_name, 'w') as f:
+        f.write(data)
+    
+
+
+
+
 
 main()

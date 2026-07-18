@@ -1,10 +1,10 @@
 import os
+import struct
 
 print(os.getcwd())
 def read_hexdump(path: str) -> int:
-    with open(path, 'r+b', -1, ) as f:
-        hex_list = f.read()
-        print(hex_list)  # TODO implement the hexdump reader
+    with open(path, 'r+b' ) as f:
+        hex_list = struct.unpack('>Q', f.read())[0]
     return hex_list
 
 def encode(a: int) -> int:
@@ -59,6 +59,40 @@ def decode(a: str, binary = False) -> int:
                 res += '1111'
     return res
 
+def encode_base128_varint(n):
+    # we receive plain hexadecimal for exp \x96
+    # should output \x96\x01
+    res = []
+    while n > 0:
+        # need to use 7 bits (the 8th bit will be the MSB)
+        b = n % 128 
+        n >>= 7
+        if n > 0:
+            b |= 0x80
+        res.append(b)
+    return bytes(res)
+
+ 
+
+def decode_base128_varint(n: int):
+    #  delete MSB 
+    #  make it big endian
+    # compute decimal value
+    res = 0
+    print(n)
+    for byte in reversed(n):
+        res <<= 7
+        print('res:   ', res)
+        res += byte & 0x7f
+        print('res:   ', res)
+        # remove the MSB
+
+    return res
+
+
+
+
+
 
 
 
@@ -67,6 +101,8 @@ def decode(a: str, binary = False) -> int:
 
 
 hex = read_hexdump('./varint/150.uint64')
-dec = decode(hex, binary=True)
-print(dec)
-print(encode(98446744073709551615)) # > max int (64-bit unsigned)
+# dec = decode(hex, binary=True)
+# print(dec)
+# print(encode(98446744073709551615)) # > max int (64-bit unsigned)
+print(decode_base128_varint(encode_base128_varint(hex)))
+# print(encode_base128_varint(hex))

@@ -35,7 +35,6 @@ def extract_hex(s: str):
                 rgb.append(rgb_hex[i])
             elif i % 2 == 1:
                 rgb.append(rgb_hex[i-1:i+1])
-            
         res.append(rgb)
     return res
 
@@ -45,11 +44,8 @@ def convert_hex_to_dec(h: list[str]):
         dec = []
         hex_str =''.join(hex)
         for i in hex:
-            print('hex', hex)
             if len(hex_str) < 6:
-                print(i)
                 i = bytes(i, "utf-8")
-                print(i)
                 dec.append((int(i, base=16) << 4) + int(i, base=16))
             else:   
                 dec.append(int(i, base=16))
@@ -62,7 +58,6 @@ def convert_hex_to_dec(h: list[str]):
 def file_updater(path: str, d: dict):
     # read file
     data = file_reader(path)
-
     # replace hex value to dec
     for k, v in d.items():
         print(d)
@@ -70,17 +65,11 @@ def file_updater(path: str, d: dict):
         if len(v) % 3 == 0:
             data = data.replace(f'#{k}', f'rgb({' '.join(v)})')
         elif len(v) % 4 == 0:
-             print('data :  ', f'#{k}', f'rgba({' '.join(v)})')
              data = data.replace(f'#{k}', f'rgba({' '.join(v)})')
-
     # write a new file
     f_name = f'{path.strip('.css')}_decimal.css'
     with open(f_name, 'w') as f:
         f.write(data)
     
-
-
-
-
 
 main()

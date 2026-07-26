@@ -35,13 +35,9 @@ def fileReader(path: str):
         # extract image
         f.seek(data["pixel_offset"])
         data["image"] = f.read(data["image_byte_size"])
-
-
         # header
-        f.seek(14)
-        data["header_width"] = int.from_bytes(f.read(4), byteorder="little")
         f.seek(0)
-        data["header"] = f.read(data["header_width"])
+        data["header"] = f.read(data["pixel_offset"])
         return data
 
 
@@ -49,24 +45,21 @@ def rotate_image(data):
     # make a representation of the pixel row and column:
     rows_and_columns = [data["image"][i: i + data["width_in_bytes"]] for i in range(0, data["image_byte_size"], data["width_in_bytes"])]
     pixels_in_rows_and_columns = [[row[i:i + data["number_of_bytes_per_pixels"]] for i in range(0, len(row), data["number_of_bytes_per_pixels"])] for row in rows_and_columns]
-
     new_image = [[b'0' for _ in range(0, data["height_in_pixels"])] for _ in range(0, data["width_in_pixels"])]
 
     # rotate the matrix 90 degrees clockwise
-#     rotated_matrix = list(zip(*bytes_in_rows_and_columns[::-1]))  # AI solution
     for i, row in enumerate(pixels_in_rows_and_columns):
         for y, pixel in enumerate(row):
-            print(pixel, i, y)
-            new_image[y][i] = pixel
+            new_image[-y - 1][-i - 1] = pixel
     for i, _ in enumerate(new_image):
         new_image[i] = b''.join(new_image[i][::-1])
+
     new_image = b''.join(new_image)
     data["image"] = new_image
 
 def create_image(data, path):
     # create a new image with the rotated pixels
     new_file_path = f'{path[:-4]}_rotated.bmp'
-    print(new_file_path)
     with open(new_file_path, 'wb') as f:
         f.write(data["header"])
         f.write(data["image"])

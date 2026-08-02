@@ -6,10 +6,16 @@ def main():
     print(f"Current working directory: {cwd}")
     path =  f'{cwd}/syn-flood/synflood.pcap'
     
-    
+    ## Read pcap file's header and extract packets
     data = read_pcap(path)
-    read_packets(data['packets'], data['packet_max_len'])
+    ## Read packets headers from pcap file and return a list of packets with their information
+    if data['linktype'] == 0:
+        data['packets'] = read_TCP_IP_packets(data['packets'], data['packet_max_len'])
+    else:
+        print('packets not from loopback')
 
+
+## Read pcap file and return a dictionary with file header (24 octets) and data
 def read_pcap(file_path: str):
     if not os.path.exists(file_path):
         print(f"File does not exist: {file_path}")
@@ -48,41 +54,80 @@ def read_pcap(file_path: str):
     print(pcap['packet_max_len'])
     return pcap
 
-def read_packets(packets: bytes, snapLen: int):
+## Read packets header (16 octets)and data, and return a list of packets with their information
+def read_TCP_IP_packets(packets: bytes, snapLen: int):
     if packets is None:
         print("No packets to read.")
         return
-    packets_len = len(packets)
-    print(f"Total packets length: {packets_len} bytes")
-    # Here you can implement further processing of the packets if needed
-    # For example, you could parse individual packets based on the pcap format
     bytes_read = 0
+    count_SYN = 0
+    count_ACK = 0
+    responses = 0
+    questions = 0
     result = []
+    packets_len = len(packets)
     while bytes_read < packets_len:
-        # BSD loopback encapsulation header's size when linktype is 0 (https://www.tcpdump.org/linktypes.html)
         # Each packet has a header of 16 bytes followed by the packet data
         if (bytes_read + 16) > packets_len:
             print("Incomplete packet header found. Stopping.")
             break
         packet = {}
         packet["packet_header"] = packets[bytes_read:bytes_read + 16]
-        # timestamp seconds (4 octets)
-        packet["ts_sec"] = int.from_bytes(packet["packet_header"][0:4], byteorder='little')
 
-        # timestamp microseconds (4 octets)
+        # timestamps (4 octets)
+        packet["ts_sec"] = int.from_bytes(packet["packet_header"][0:4], byteorder='little')
         packet["ts_usec"] = int.from_bytes(packet["packet_header"][4:8], byteorder='little')
 
         # Extract the included length and original length from the packet header
         packet["incl_len"] = int.from_bytes(packet["packet_header"][8:12], byteorder='little')
         packet["orig_len"] = int.from_bytes(packet["packet_header"][12:16], byteorder='little')
         
-        #max_len = snapLen if snapLen < packet["incl_len"] else packet["incl_len"]
-
         # Packet data starts after the 16-byte header
         if bytes_read + 16 + packet["orig_len"] > packets_len:
             print("Incomplete packet data found. Stopping.")
             break
-        #packet["actual_length"] = len(packets[bytes_read + 16:bytes_read + 16 + max_len])
+        packet['packet_payload'] = packets[bytes_read + 16 :bytes_read + 16 + packet["incl_len"]]
+
+        # BSD loopback encapsulation header's size when linktype is 0 (https://www.tcpdump.org/linktypes.html)
+        # for linktype 0, header is 4 octets
+        packet["packet_link_layer_header"] = int.from_bytes(packet['packet_payload'][:4], byteorder='little')
+        ## should be ipv4
+        assert packet["packet_link_layer_header"] == 2
+
+        # IPv4 header (https://en.wikipedia.org/wiki/IPv4#Header)
+        ## check protocol is TCP
+        packet["protocol"] = int.from_bytes(packet['packet_payload'][4 + 9:4 + 9 + 1], byteorder='big')
+        assert packet["protocol"] == 6
+
+        ## ip_header_length is the number of 32 bits word (<< 2 to have it in number of bytes)
+        packet["ip_header_length"] = (packet['packet_payload'][4: 4 + 1][0] & 0x0f) << 2
+        packet["source_ip"] = int.from_bytes(packet['packet_payload'][4 + 12 : 4 + 12 + 4], byteorder='big')
+
+        # TCP header
+        packet["TCP"] = packet['packet_payload'][4 + packet["ip_header_length"]:]
+        TCP_flags = packet["TCP"][13]
+        is_SYN = TCP_flags & 0x02 != 0
+        is_ACK = TCP_flags & 0x10 != 0
+        
+        if is_SYN:
+            count_SYN += 1
+        if is_ACK :
+            count_ACK += 1
+        
+        source_port = int.from_bytes(packet["TCP"][:2], byteorder='big')
+        destination_port = int.from_bytes(packet["TCP"][2:4], byteorder='big')
+        print(destination_port, source_port)
+        if source_port == 80 and is_ACK:
+            responses += 1
+
+        if destination_port == 80 and is_SYN and not is_ACK:
+            questions += 1
+  
+
+
+
+        """ read_TCP_IP_packets(data['packets'])
+
         data = packets[bytes_read + 16:bytes_read + 16 + packet["orig_len"]]
         if len(data) > 13:
             packet["is_SYN"] = data[13] & 0x02 != 0  # Check if SYN flag is set
@@ -91,18 +136,24 @@ def read_packets(packets: bytes, snapLen: int):
             packet["is_SYN"] = False
             packet["is_ACK"] = False
         # Move to the next packet
+        
+     """
         bytes_read += 16 + packet["orig_len"]
-    
         result.append(packet)
+    print('count_SYN: ', count_SYN)
+    print('count_ACK: ', count_ACK)
+    print(f'{(responses / float(questions))*100} %')
 
+    return result
         ## parse TCP packet header and define packet type (ACK, SYN ACK/SYN, OTHERS)
-    print(len(result))
+"""     print(len(result))
 
     print(f"Result length: {len(result)} packets processed.")
     for packet in result:
         if packet["is_SYN"] or packet["is_ACK"]:
-            print(packet)
-    return result
+            print(packet) """
+    
+
 
 if __name__ == "__main__":
     main()

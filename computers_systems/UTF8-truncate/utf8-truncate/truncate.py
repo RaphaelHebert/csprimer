@@ -25,3 +25,8 @@ with open(test_path, 'rb') as f:
 assert res == test
 print('test passes')
 
+
+##  eventualy write to stdout 
+# sys.stdout.buffer.write(res)
+## test on terminal
+# diff expected <(python3 truncate.py)

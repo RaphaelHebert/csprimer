@@ -2,26 +2,26 @@ import os
 
 path = f'{os.getcwd()}/cases'
 test_path =  f'{os.getcwd()}/expected'
-data = b''
-l=0
-with open(path, 'rb') as i:
-    d = i.read()
-    for i in d:
-      byte = bytes(i)
-      if byte & bytes(128) == 0 or byte & 0xfff00000 == 192 or byte & 0xff00000 == 128:
-        data += byte  
 
+def truncate(line, l):
+  if l >= len(line):
+    return line
+  while l > 0 and line[l] & 0xC0 == 0x80:
+    l -= 1
+  return line[:l]
 
-print(data)
+res = b''
+with open(path, 'rb') as f:
+  lines = f.readlines()
+  for line in lines:
+    length = line[0]
+    res += truncate(line[1:-1], length)
+    res += b'\n'
 
-
-
-
-
-
-
-
+test = b''
 with open(test_path, 'rb') as f:
-    test_data = f.read()
-    print(test_data)
-    assert data == test_data
+  test = f.read()
+
+assert res == test
+print('test passes')
+
